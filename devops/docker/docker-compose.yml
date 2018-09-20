@@ -1,18 +1,26 @@
 version: '2'
 services:
-  mongodb:
+  db-mongodb:
     image: mongo:3.6
     volumes:
         - /mongodb:/data/db
 
-  rabbit:
+  app-rabbit:
     image: rabbitmq:latest
 
-  girder_worker:
+  app-girder_worker:
     image: openchemistry/girder_worker:mdb
     build:
       context: ../../
       dockerfile: devops/docker/girder_worker/Dockerfile
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETUID
+      - SETGID
+      - NET_BIND_SERVICE
     links:
       - rabbit
       - girder
@@ -22,7 +30,7 @@ services:
     depends_on:
       - rabbit
 
-  girder:
+  app-girder:
     image: openchemistry/girder:mdb
     build:
       context: ../../
@@ -31,8 +39,8 @@ services:
     ports:
           - 8081:8080
     volumes:
-      - localassetstore:/localassetstore
-      - curatedassetstore:/curatedassetstore
+      - app-localassetstore.mdb:/assetstore
+      - app-curatedassetstore.mdb:/curatedassetstore
     links:
       - mongodb
       - rabbit
@@ -42,20 +50,31 @@ services:
     depends_on:
       - mongodb
 
-  nginx:
+  web-nginx:
     image: openchemistry/nginx:mdb
     build:
       context: ../../
       dockerfile: devops/docker/nginx/Dockerfile
     ports:
-      - 80:80
+      - 6000:80
+    volumes:
+      - web-certs.ssl-testing:/etc/letsencrypt
+      - web-certbot-webroot.ssl-testing:/data/letsencrypt
     links:
       - girder
     depends_on:
       - girder
 
 volumes:
-    localassetstore:
-    curatedassetstore:
-    mongodb:
+  app-localassetstore.mdb:
+    db-mongodb.mdb:
+    external: true
+    driver: rancher-nfs
+  app-curatedassetstore.mdb:
+    db-mongodb.mdb:
+    external: true
+    driver: rancher-nfs
+  db-mongodb.mdb:
+    external: true
+    driver: rancher-nfs
 
