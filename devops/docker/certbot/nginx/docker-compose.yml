@@ -1,7 +1,9 @@
 version: '2'
 services:
-  web:
+  web-nginx:
     image: openchemistry/nginx:mdb_certbot
+    labels:
+      io.rancher.container.pull_image: always
     build:
       dockerfile: Dockerfile
     cap_drop:
@@ -13,16 +15,10 @@ services:
     - SETGID
     - NET_BIND_SERVICE
     volumes:
-    - web-certbot-nginx-conf.mdb:/etc/nginx/conf.d
     - web-certbot-webroot.mdb:/usr/share/nginx/html
     group_add:
     - nginx
 volumes:
-  web-certbot-nginx-conf.ssl-testing:
+  web-certbot-webroot.mdb:
     external: true
     driver: rancher-nfs
-  web-certbot-webroot.ssl-testing:
-    external: true
-    driver: rancher-nfs
-
-
